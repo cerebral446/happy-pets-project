@@ -1,4 +1,4 @@
-<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4"><Item class="Workspace" referent="RBX00000001"><Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties></Item><Item class="Lighting" referent="RBX00000002"><Properties><string name="Name">Lighting</string><token name="Technology">4</token></Properties></Item><Item class="ReplicatedStorage" referent="RBX0000000D"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX0000000C"><Properties><string name="Name">Shared</string></Properties><Item class="ModuleScript" referent="RBX00000003"><Properties><string name="Name">Build</string><ProtectedString name="Source"><![CDATA[-- Tiny helpers for building models out of parts.
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4"><Item class="Workspace" referent="RBX00000001"><Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties></Item><Item class="Lighting" referent="RBX00000002"><Properties><string name="Name">Lighting</string><token name="Technology">4</token></Properties></Item><Item class="ReplicatedStorage" referent="RBX00000033"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX0000000C"><Properties><string name="Name">Shared</string></Properties><Item class="ModuleScript" referent="RBX00000003"><Properties><string name="Name">Build</string><ProtectedString name="Source"><![CDATA[-- Tiny helpers for building models out of parts.
 
 local Build = {}
 
@@ -422,6 +422,47 @@ function Config.FloorById(id: string): any
 	end
 	return nil
 end
+
+---------------------------------------------------------------------------
+-- Music and pet sounds
+---------------------------------------------------------------------------
+-- Roblox only plays audio that has been uploaded to Roblox, so these start
+-- empty. Fill them in either way (see the README, "Music and pet sounds"):
+--   * paste asset ids here, e.g. "rbxassetid://1234567890", or
+--   * drop Sound objects into ReplicatedStorage.Assets.Audio in Studio:
+--       Assets/Audio/Music/<any name>          background tracks
+--       Assets/Audio/<Species>/<Kind>          a Sound, or a Folder of Sounds
+--     (Sounds inserted from the Toolbox work directly; no ids to copy.)
+-- Several ids in one list are picked at random, for variety.
+
+Config.Audio = {
+	MusicVolume = 0.3,
+	-- Seconds of fade between tracks.
+	MusicFade = 2.5,
+	-- Upload assets/audio/lofi_sunny_window.ogg and lofi_rainy_nap.ogg
+	-- (original tracks made for this game) and paste their ids here.
+	Music = {} :: { string },
+
+	PetVolume = 0.7,
+	-- Kinds of pet sound and when they play:
+	--   Greet  you click the pet, give it medicine or a bath   (meow, bark, squeak…)
+	--   Love   you pet it, give a treat, or it falls in love    (purr, happy pant…)
+	--   Play   it plays with a toy                             (trill, excited bark…)
+	--   Eat    it eats                                         (munching)
+	--   Sad    it shows a thought bubble for a low need         (sad meow, whine…)
+	--   Sleep  it falls asleep, and now and then while asleep  (soft purr, snore)
+	-- A missing kind falls back to Greet; a missing Greet plays nothing.
+	PetKinds = { "Greet", "Love", "Play", "Eat", "Sad", "Sleep" },
+	Pets = {
+		Cat = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+		Dog = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+		Bunny = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+		Fox = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+		Panda = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+	} :: { [string]: { [string]: { string } } },
+	-- Babies sound higher.
+	BabyPitch = 1.25,
+}
 
 return Config
 ]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000005"><Properties><string name="Name">Economy</string><ProtectedString name="Source"><![CDATA[-- Coins, XP, levels and unlock rules. Pure functions on the save data table,
@@ -1702,7 +1743,7 @@ return Rng
 --   adopt      { day, rerolls, taken = { ["Cat:2"] = true } }
 --   daily      { day }                     last daily bonus claimed
 --   visits     { day, count, petted = { [key] = true } }
---   settings   { sound }
+--   settings   { sound, music }
 --   stats      { care, adopted, bred, gifts }
 --   starterDone                            first free kitten taken
 
@@ -1736,7 +1777,7 @@ function SaveSchema.Default(now: number): any
 		adopt = { day = 0, rerolls = 0, taken = {} },
 		daily = { day = 0 },
 		visits = { day = 0, count = 0, petted = {} },
-		settings = { sound = true },
+		settings = { sound = true, music = true },
 		stats = { care = 0, adopted = 0, bred = 0, gifts = 0 },
 		starterDone = false,
 	}
@@ -1960,7 +2001,7 @@ function SaveSchema.Load(raw: any, now: number): (any, { string })
 			data.visits.petted[key] = true
 		end
 	end
-	data.settings = { sound = tbl(raw.settings).sound ~= false }
+	data.settings = { sound = tbl(raw.settings).sound ~= false, music = tbl(raw.settings).music ~= false }
 	local stats = tbl(raw.stats)
 	data.stats = {
 		care = num(stats.care, 0, 0),
@@ -1979,7 +2020,7 @@ function SaveSchema.NewId(data: any, prefix: string): string
 end
 
 return SaveSchema
-]]></ProtectedString></Properties></Item></Item></Item><Item class="ServerScriptService" referent="RBX00000014"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="ModuleScript" referent="RBX0000000E"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Every request a client can make, validated and applied on the server.
+]]></ProtectedString></Properties></Item></Item><Item class="Folder" referent="RBX00000032"><Properties><string name="Name">Assets</string></Properties><Item class="Folder" referent="RBX00000031"><Properties><string name="Name">Audio</string></Properties><Item class="Folder" referent="RBX0000000D"><Properties><string name="Name">Music</string></Properties></Item><Item class="Folder" referent="RBX00000014"><Properties><string name="Name">Cat</string></Properties><Item class="Folder" referent="RBX0000000E"><Properties><string name="Name">Greet</string></Properties></Item><Item class="Folder" referent="RBX0000000F"><Properties><string name="Name">Love</string></Properties></Item><Item class="Folder" referent="RBX00000010"><Properties><string name="Name">Play</string></Properties></Item><Item class="Folder" referent="RBX00000011"><Properties><string name="Name">Eat</string></Properties></Item><Item class="Folder" referent="RBX00000012"><Properties><string name="Name">Sad</string></Properties></Item><Item class="Folder" referent="RBX00000013"><Properties><string name="Name">Sleep</string></Properties></Item></Item><Item class="Folder" referent="RBX0000001B"><Properties><string name="Name">Dog</string></Properties><Item class="Folder" referent="RBX00000015"><Properties><string name="Name">Greet</string></Properties></Item><Item class="Folder" referent="RBX00000016"><Properties><string name="Name">Love</string></Properties></Item><Item class="Folder" referent="RBX00000017"><Properties><string name="Name">Play</string></Properties></Item><Item class="Folder" referent="RBX00000018"><Properties><string name="Name">Eat</string></Properties></Item><Item class="Folder" referent="RBX00000019"><Properties><string name="Name">Sad</string></Properties></Item><Item class="Folder" referent="RBX0000001A"><Properties><string name="Name">Sleep</string></Properties></Item></Item><Item class="Folder" referent="RBX00000022"><Properties><string name="Name">Bunny</string></Properties><Item class="Folder" referent="RBX0000001C"><Properties><string name="Name">Greet</string></Properties></Item><Item class="Folder" referent="RBX0000001D"><Properties><string name="Name">Love</string></Properties></Item><Item class="Folder" referent="RBX0000001E"><Properties><string name="Name">Play</string></Properties></Item><Item class="Folder" referent="RBX0000001F"><Properties><string name="Name">Eat</string></Properties></Item><Item class="Folder" referent="RBX00000020"><Properties><string name="Name">Sad</string></Properties></Item><Item class="Folder" referent="RBX00000021"><Properties><string name="Name">Sleep</string></Properties></Item></Item><Item class="Folder" referent="RBX00000029"><Properties><string name="Name">Fox</string></Properties><Item class="Folder" referent="RBX00000023"><Properties><string name="Name">Greet</string></Properties></Item><Item class="Folder" referent="RBX00000024"><Properties><string name="Name">Love</string></Properties></Item><Item class="Folder" referent="RBX00000025"><Properties><string name="Name">Play</string></Properties></Item><Item class="Folder" referent="RBX00000026"><Properties><string name="Name">Eat</string></Properties></Item><Item class="Folder" referent="RBX00000027"><Properties><string name="Name">Sad</string></Properties></Item><Item class="Folder" referent="RBX00000028"><Properties><string name="Name">Sleep</string></Properties></Item></Item><Item class="Folder" referent="RBX00000030"><Properties><string name="Name">Panda</string></Properties><Item class="Folder" referent="RBX0000002A"><Properties><string name="Name">Greet</string></Properties></Item><Item class="Folder" referent="RBX0000002B"><Properties><string name="Name">Love</string></Properties></Item><Item class="Folder" referent="RBX0000002C"><Properties><string name="Name">Play</string></Properties></Item><Item class="Folder" referent="RBX0000002D"><Properties><string name="Name">Eat</string></Properties></Item><Item class="Folder" referent="RBX0000002E"><Properties><string name="Name">Sad</string></Properties></Item><Item class="Folder" referent="RBX0000002F"><Properties><string name="Name">Sleep</string></Properties></Item></Item></Item></Item></Item><Item class="ServerScriptService" referent="RBX0000003A"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="ModuleScript" referent="RBX00000034"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Every request a client can make, validated and applied on the server.
 -- Each handler receives the player's session and the request payload and
 -- returns { ok = boolean, msg = string?, ... }. Nothing the client sends is
 -- trusted: prices, positions, ownership and cooldowns are all re-checked.
@@ -2663,8 +2704,8 @@ function Actions.VisitPet(s: Session, payload: any): Result
 end
 
 function Actions.SetSetting(s: Session, payload: any): Result
-	if payload.key == "sound" and typeof(payload.value) == "boolean" then
-		s.data.settings.sound = payload.value
+	if (payload.key == "sound" or payload.key == "music") and typeof(payload.value) == "boolean" then
+		s.data.settings[payload.key] = payload.value
 		s.dirty = true
 		return { ok = true }
 	end
@@ -2680,7 +2721,7 @@ function Actions.ResetSave(s: Session, payload: any): Result
 end
 
 return Actions
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000000F"><Properties><string name="Name">DataService</string><ProtectedString name="Source"><![CDATA[-- Loading and saving player data with a DataStore.
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000035"><Properties><string name="Name">DataService</string><ProtectedString name="Source"><![CDATA[-- Loading and saving player data with a DataStore.
 --
 -- If DataStores are unavailable (Studio without "Enable Studio Access to API
 -- Services", or an unpublished place) the game still runs with a fresh save
@@ -2820,7 +2861,7 @@ function DataService.Available(): boolean
 end
 
 return DataService
-]]></ProtectedString></Properties></Item><Item class="Script" referent="RBX00000010"><Properties><string name="Name">HappyPetsServer</string><ProtectedString name="Source"><![CDATA[-- Happy Pets: main server script.
+]]></ProtectedString></Properties></Item><Item class="Script" referent="RBX00000036"><Properties><string name="Name">HappyPetsServer</string><ProtectedString name="Source"><![CDATA[-- Happy Pets: main server script.
 -- Loads each player's save, builds their home and pets, runs the needs
 -- simulation, answers requests from the client and autosaves.
 
@@ -3132,7 +3173,7 @@ task.spawn(function()
 		end
 	end
 end)
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000011"><Properties><string name="Name">Names</string><ProtectedString name="Source"><![CDATA[-- Pet names are visible to visitors, so Roblox requires them to go through
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000037"><Properties><string name="Name">Names</string><ProtectedString name="Source"><![CDATA[-- Pet names are visible to visitors, so Roblox requires them to go through
 -- the text filter before they're shown.
 
 local TextService = game:GetService("TextService")
@@ -3162,7 +3203,7 @@ function Names.Filter(player: Player, raw: any): (string?, string?)
 end
 
 return Names
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000012"><Properties><string name="Name">PetService</string><ProtectedString name="Source"><![CDATA[-- Pet models in the world and their replicated state.
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000038"><Properties><string name="Name">PetService</string><ProtectedString name="Source"><![CDATA[-- Pet models in the world and their replicated state.
 --
 -- The server owns each pet's data (needs, room, sleeping) and builds one
 -- model per pet in its plot's Pets folder. The model's attributes tell every
@@ -3342,7 +3383,7 @@ function PetService.SpawnAll(plot: Model, data: any)
 end
 
 return PetService
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000013"><Properties><string name="Name">Plots</string><ProtectedString name="Source"><![CDATA[-- Each player gets a plot: a little dollhouse of rooms side by side, open at
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000039"><Properties><string name="Name">Plots</string><ProtectedString name="Source"><![CDATA[-- Each player gets a plot: a little dollhouse of rooms side by side, open at
 -- the front so the camera can look in. This module builds the rooms (walls,
 -- floors, wallpaper patterns), keeps the furniture models in sync with the
 -- save data, and shows locked rooms as "for sale".
@@ -3678,7 +3719,269 @@ function Plots.Destroy(plot: Model)
 end
 
 return Plots
-]]></ProtectedString></Properties></Item></Item><Item class="StarterPlayer" referent="RBX00000020"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX0000001E"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="ModuleScript" referent="RBX00000015"><Properties><string name="Name">CameraController</string><ProtectedString name="Source"><![CDATA[-- A fixed dollhouse camera looking into the current room from the front.
+]]></ProtectedString></Properties></Item></Item><Item class="StarterPlayer" referent="RBX00000047"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX00000045"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="ModuleScript" referent="RBX0000003B"><Properties><string name="Name">Audio</string><ProtectedString name="Source"><![CDATA[-- Background music and pet voices.
+--
+-- Music: a shuffled playlist that fades between tracks (or loops a single
+-- track). Pet voices: each species has its own sounds for greeting, being
+-- loved, playing, eating, feeling sad and sleeping, played from the pet's
+-- position so pets in the next room sound further away.
+--
+-- Sounds come from Config.Audio (asset ids) and/or Sound objects placed in
+-- ReplicatedStorage.Assets.Audio. Anything missing simply stays silent.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local State = require(script.Parent:WaitForChild("State"))
+
+local Audio = {}
+
+local musicOn = true
+local sfxOn = true
+
+local function assetsFolder(): Instance?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	return assets and assets:FindFirstChild("Audio")
+end
+
+-- A sound "source" is either an asset id string or a Sound to clone.
+type Source = string | Sound
+
+local function soundsIn(inst: Instance?): { Sound }
+	local list = {}
+	if not inst then
+		return list
+	end
+	if inst:IsA("Sound") then
+		table.insert(list, inst)
+	end
+	for _, d in inst:GetDescendants() do
+		if d:IsA("Sound") then
+			table.insert(list, d)
+		end
+	end
+	return list
+end
+
+local function validId(id: any): boolean
+	return typeof(id) == "string" and string.match(id, "%d%d%d") ~= nil
+end
+
+local function makeSound(source: Source, parent: Instance, volume: number): Sound
+	local s: Sound
+	if typeof(source) == "string" then
+		s = Instance.new("Sound")
+		s.SoundId = source
+	else
+		s = (source :: Sound):Clone()
+	end
+	-- Toolbox sounds default to 0.5 volume; treat that as "normal".
+	s.Volume = volume * (if typeof(source) == "string" then 1 else (source :: Sound).Volume * 2)
+	s.Parent = parent
+	return s
+end
+
+---------------------------------------------------------------------------
+-- Music
+---------------------------------------------------------------------------
+
+local playlist: { Source } = {}
+local order: { number } = {}
+local position = 0
+local current: Sound? = nil
+local musicFolder: Folder
+
+local function buildPlaylist()
+	playlist = {}
+	for _, id in Config.Audio.Music do
+		if validId(id) then
+			table.insert(playlist, id)
+		end
+	end
+	local folder = assetsFolder()
+	for _, s in soundsIn(folder and folder:FindFirstChild("Music")) do
+		table.insert(playlist, s)
+	end
+end
+
+local function shuffle()
+	order = {}
+	for i = 1, #playlist do
+		table.insert(order, i)
+	end
+	for i = #order, 2, -1 do
+		local j = math.random(1, i)
+		order[i], order[j] = order[j], order[i]
+	end
+	position = 0
+end
+
+local function fadeOut(s: Sound)
+	local tween = TweenService:Create(s, TweenInfo.new(Config.Audio.MusicFade), { Volume = 0 })
+	tween.Completed:Connect(function()
+		s:Destroy()
+	end)
+	tween:Play()
+end
+
+local playNext: () -> ()
+
+function playNext()
+	if not musicOn or #playlist == 0 then
+		return
+	end
+	position += 1
+	if position > #order then
+		local last = order[#order]
+		shuffle()
+		-- Don't repeat the track that just finished.
+		if #order > 1 and order[1] == last then
+			order[1], order[2] = order[2], order[1]
+		end
+		position = 1
+	end
+	if current then
+		fadeOut(current)
+	end
+	local s = makeSound(playlist[order[position]], musicFolder, 0)
+	s.Name = "Music"
+	s.Looped = #playlist == 1
+	current = s
+	s.Ended:Connect(function()
+		if current == s then
+			playNext()
+		end
+	end)
+	s:Play()
+	TweenService:Create(s, TweenInfo.new(Config.Audio.MusicFade), { Volume = Config.Audio.MusicVolume }):Play()
+end
+
+function Audio.SetMusic(on: boolean)
+	if on == musicOn and (current ~= nil) == on then
+		return
+	end
+	musicOn = on
+	if on then
+		if not current then
+			playNext()
+		end
+	elseif current then
+		fadeOut(current)
+		current = nil
+	end
+end
+
+function Audio.HasMusic(): boolean
+	return #playlist > 0
+end
+
+---------------------------------------------------------------------------
+-- Pet voices
+---------------------------------------------------------------------------
+
+local lastVoice: { [Model]: number } = {}
+
+local function petSources(species: string, kind: string): { Source }
+	local list: { Source } = {}
+	local cfg = Config.Audio.Pets[species]
+	if cfg and cfg[kind] then
+		for _, id in cfg[kind] do
+			if validId(id) then
+				table.insert(list, id)
+			end
+		end
+	end
+	local folder = assetsFolder()
+	local speciesFolder = folder and folder:FindFirstChild(species)
+	for _, s in soundsIn(speciesFolder and speciesFolder:FindFirstChild(kind)) do
+		table.insert(list, s)
+	end
+	return list
+end
+
+-- Plays one of the species' sounds of this kind from the pet. `volume` scales
+-- the configured pet volume (e.g. quieter snores).
+function Audio.PetSound(model: Model, kind: string, volume: number?)
+	if not sfxOn or not model.Parent then
+		return
+	end
+	-- Don't let one pet chatter over itself.
+	local now = os.clock()
+	if now - (lastVoice[model] or 0) < 0.9 then
+		return
+	end
+	local species = model:GetAttribute("Species") :: string?
+	if not species then
+		return
+	end
+	local sources = petSources(species, kind)
+	if #sources == 0 and kind ~= "Greet" then
+		sources = petSources(species, "Greet")
+	end
+	if #sources == 0 then
+		return
+	end
+	lastVoice[model] = now
+	local root = model.PrimaryPart
+	if not root then
+		return
+	end
+	local s = makeSound(sources[math.random(1, #sources)], root, Config.Audio.PetVolume * (volume or 1))
+	s.Looped = false
+	-- Full volume anywhere in the room on screen, fading out next door.
+	s.RollOffMode = Enum.RollOffMode.InverseTapered
+	s.RollOffMinDistance = 45
+	s.RollOffMaxDistance = 120
+	local pitch = 0.93 + math.random() * 0.14
+	if model:GetAttribute("Stage") == "Baby" then
+		pitch *= Config.Audio.BabyPitch
+	end
+	s.PlaybackSpeed = pitch
+	s.Ended:Connect(function()
+		s:Destroy()
+	end)
+	s:Play()
+	task.delay(12, function()
+		if s.Parent then
+			s:Destroy()
+		end
+	end)
+end
+
+function Audio.Init()
+	musicFolder = Instance.new("Folder")
+	musicFolder.Name = "HappyPetsMusic"
+	musicFolder.Parent = SoundService
+	buildPlaylist()
+	shuffle()
+
+	local function applySettings(p: any)
+		local settings = p and p.settings or {}
+		sfxOn = settings.sound ~= false
+		Audio.SetMusic(settings.music ~= false)
+	end
+	State.ProfileChanged:Connect(applySettings)
+	applySettings(State.Profile)
+
+	-- Sounds added to Assets.Audio while playing (e.g. in Studio) join in.
+	local folder = assetsFolder()
+	if folder then
+		folder.DescendantAdded:Connect(function(d)
+			if d:IsA("Sound") then
+				buildPlaylist()
+				shuffle()
+				if musicOn and not current then
+					playNext()
+				end
+			end
+		end)
+	end
+end
+
+return Audio
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000003C"><Properties><string name="Name">CameraController</string><ProtectedString name="Source"><![CDATA[-- A fixed dollhouse camera looking into the current room from the front.
 -- Mouse wheel / pinch zooms; Q/E or dragging with the right mouse button
 -- swings the view a little; switching rooms glides across the house.
 
@@ -3770,7 +4073,7 @@ function CameraController.Init()
 end
 
 return CameraController
-]]></ProtectedString></Properties></Item><Item class="LocalScript" referent="RBX00000016"><Properties><string name="Name">Client</string><ProtectedString name="Source"><![CDATA[-- Happy Pets client: starts the UI, camera and pet animation, handles
+]]></ProtectedString></Properties></Item><Item class="LocalScript" referent="RBX0000003D"><Properties><string name="Name">Client</string><ProtectedString name="Source"><![CDATA[-- Happy Pets client: starts the UI, camera and pet animation, handles
 -- clicking/tapping pets and furniture, and shows server notifications.
 
 local Players = game:GetService("Players")
@@ -3787,6 +4090,7 @@ local PetPanel = require(script.Parent:WaitForChild("PetPanel"))
 local Windows = require(script.Parent:WaitForChild("Windows"))
 local Decorate = require(script.Parent:WaitForChild("Decorate"))
 local CameraController = require(script.Parent:WaitForChild("CameraController"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -3849,6 +4153,7 @@ PetPanel.Init()
 PetAnimator.Init()
 Decorate.Init()
 CameraController.Init()
+Audio.Init()
 
 Windows.Toast = function(text)
 	Hud.Toast(text)
@@ -3958,6 +4263,7 @@ local function handlePress(point: Vector2)
 			end
 		else
 			UI.Play("Pop", 0.3)
+			Audio.PetSound(pet, "Greet")
 			State.Select(pet)
 			PetAnimator.Bubble(pet, if pet:GetAttribute("Sleeping") then "💤" else "❤️", 1.2)
 		end
@@ -4076,7 +4382,7 @@ player:GetAttributeChangedSignal("Plot"):Connect(function()
 		State.SetView(State.HomePlot(), State.RoomIndex)
 	end
 end)
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000017"><Properties><string name="Name">Decorate</string><ProtectedString name="Source"><![CDATA[-- Decorate mode: pick up furniture, slide a see-through preview around the
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000003E"><Properties><string name="Name">Decorate</string><ProtectedString name="Source"><![CDATA[-- Decorate mode: pick up furniture, slide a see-through preview around the
 -- room's floor grid (green = fits, red = blocked), rotate it, then place it,
 -- put it back in the inventory, or cancel. New items from the inventory are
 -- placed the same way. The server re-checks every placement.
@@ -4454,7 +4760,7 @@ function Decorate.Init()
 end
 
 return Decorate
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000018"><Properties><string name="Name">Hud</string><ProtectedString name="Source"><![CDATA[-- The always-on interface: status bar (level, XP, coins, daily bonus, save
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000003F"><Properties><string name="Name">Hud</string><ProtectedString name="Source"><![CDATA[-- The always-on interface: status bar (level, XP, coins, daily bonus, save
 -- state), the navigation bar, the room switcher, the "visiting" banner,
 -- toasts, floating rewards and the level-up celebration.
 
@@ -4900,7 +5206,7 @@ function Hud.Init(onNav: NavHandler, onDaily: () -> ())
 end
 
 return Hud
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000019"><Properties><string name="Name">PetAnimator</string><ProtectedString name="Source"><![CDATA[-- Brings the pets in the room you're looking at to life, entirely on this
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000040"><Properties><string name="Name">PetAnimator</string><ProtectedString name="Source"><![CDATA[-- Brings the pets in the room you're looking at to life, entirely on this
 -- client: wandering, sitting, looking around, walking to the bowl or a toy,
 -- eating, playing, sleeping in bed, plus hearts, bubbles and thought bubbles.
 --
@@ -4916,6 +5222,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local State = require(script.Parent:WaitForChild("State"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local player = Players.LocalPlayer
 
@@ -4952,6 +5259,8 @@ type PetState = {
 	room: string,
 	toy: Model?,
 	toyPivot: CFrame?,
+	wasSleeping: boolean,
+	snoreAt: number,
 }
 
 local pets: { [Model]: PetState } = {}
@@ -5150,6 +5459,8 @@ local function track(model: Model)
 		room = model:GetAttribute("Room") :: string,
 		toy = nil,
 		toyPivot = nil,
+		wasSleeping = model:GetAttribute("Sleeping") == true,
+		snoreAt = os.clock() + 8 + math.random() * 10,
 	}
 	pets[model] = state
 end
@@ -5236,6 +5547,23 @@ local ACTION_EFFECTS = {
 	Eat = { "😋" },
 	Play = { "🎵", "⭐", "💫" },
 }
+
+-- Which voice each action uses (see Config.Audio).
+local ACTION_VOICES = {
+	Pet = "Love",
+	Love = "Love",
+	Treat = "Love",
+	Eat = "Eat",
+	Play = "Play",
+	Bath = "Greet",
+	Brush = "Love",
+	Medicine = "Greet",
+}
+
+-- Pets only make noise in the room you're looking at.
+local function inView(model: Model): boolean
+	return model:GetAttribute("Room") == State.RoomId()
+end
 
 local function actionGoal(state: PetState, action: string, target: Model?): (Vector3?, Vector3?)
 	if not target then
@@ -5332,6 +5660,12 @@ local function behave(state: PetState, dt: number, t: number): string
 		if action == "Eat" then
 			PetAnimator.Bubble(model, "🍽️", 1.5)
 		end
+		local voice = ACTION_VOICES[action]
+		if voice and inView(model) and (model:GetAttribute("ActionEnd") :: number? or 0) > now() then
+			-- Eating and playing sound once the pet reaches the bowl or toy.
+			local delay = if (action == "Eat" or action == "Play") and model:GetAttribute("ActionTarget") ~= "" then 1.6 else 0
+			task.delay(delay, Audio.PetSound, model, voice)
+		end
 	end
 	if action ~= "" and actionEnd > now() then
 		local target = findFurniture(model, model:GetAttribute("ActionTarget") :: string)
@@ -5364,8 +5698,23 @@ local function behave(state: PetState, dt: number, t: number): string
 		state.toy, state.toyPivot = nil, nil
 	end
 
+	-- Falling asleep, and the odd snore or purr while asleep.
+	local sleeping = model:GetAttribute("Sleeping") == true
+	if sleeping ~= state.wasSleeping then
+		state.wasSleeping = sleeping
+		if sleeping and inView(model) then
+			Audio.PetSound(model, "Sleep", 0.7)
+		end
+		state.snoreAt = clock + 15 + math.random() * 15
+	elseif sleeping and clock >= state.snoreAt then
+		state.snoreAt = clock + 18 + math.random() * 20
+		if inView(model) then
+			Audio.PetSound(model, "Sleep", 0.45)
+		end
+	end
+
 	-- Sleeping: walk to bed (if any) and curl up.
-	if model:GetAttribute("Sleeping") then
+	if sleeping then
 		local bed = findFurniture(model, (model:GetAttribute("SleepTarget") :: string?) or "")
 		local spot = sleepSpot(state, bed)
 		if spot and not walkTo(state, spot, dt, walkSpeed) then
@@ -5392,6 +5741,9 @@ local function behave(state: PetState, dt: number, t: number): string
 		local info = Config.NeedInfo[low]
 		if info then
 			PetAnimator.Bubble(model, info.Icon, 2.5)
+			if inView(model) and math.random() < 0.5 then
+				Audio.PetSound(model, "Sad")
+			end
 		end
 	end
 
@@ -5655,7 +6007,7 @@ function PetAnimator.Init()
 end
 
 return PetAnimator
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000001A"><Properties><string name="Name">PetPanel</string><ProtectedString name="Source"><![CDATA[-- The panel that opens when you click a pet: portrait, needs, mood and the
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000041"><Properties><string name="Name">PetPanel</string><ProtectedString name="Source"><![CDATA[-- The panel that opens when you click a pet: portrait, needs, mood and the
 -- care actions. Visitors get a smaller panel with just "Pet".
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -6010,7 +6362,7 @@ function PetPanel.Init()
 end
 
 return PetPanel
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000001B"><Properties><string name="Name">State</string><ProtectedString name="Source"><![CDATA[-- Client-side state shared by the UI modules: the player's profile (sent by
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000042"><Properties><string name="Name">State</string><ProtectedString name="Source"><![CDATA[-- Client-side state shared by the UI modules: the player's profile (sent by
 -- the server as JSON), which home and room the camera is looking at, the
 -- selected pet, and a helper for server requests.
 
@@ -6187,7 +6539,7 @@ function State.Request(name: string, payload: any?): any
 end
 
 return State
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000001C"><Properties><string name="Name">UI</string><ProtectedString name="Source"><![CDATA[-- UI toolkit: the cosy late-2000s browser-game look (cream panels, glossy
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000043"><Properties><string name="Name">UI</string><ProtectedString name="Source"><![CDATA[-- UI toolkit: the cosy late-2000s browser-game look (cream panels, glossy
 -- rounded buttons, chunky outlines), plus windows, bars, tooltips and sounds.
 
 local Players = game:GetService("Players")
@@ -6733,7 +7085,7 @@ function UI.Inset(): number
 end
 
 return UI
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000001D"><Properties><string name="Name">Windows</string><ProtectedString name="Source"><![CDATA[-- The pop-up windows: Adopt, My Pets, Shop, Items, Breed, Rooms, Visit,
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000044"><Properties><string name="Name">Windows</string><ProtectedString name="Source"><![CDATA[-- The pop-up windows: Adopt, My Pets, Shop, Items, Breed, Rooms, Visit,
 -- Settings, plus the name dialog used for adopting, babies and renaming.
 
 local Players = game:GetService("Players")
@@ -6747,6 +7099,7 @@ local PetModels = require(Shared:WaitForChild("PetModels"))
 local FurnitureModels = require(Shared:WaitForChild("FurnitureModels"))
 local State = require(script.Parent:WaitForChild("State"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local player = Players.LocalPlayer
 
@@ -7610,6 +7963,17 @@ function Windows.Settings()
 		soundButton.Text = if soundOn then "🔊 Sound: On" else "🔈 Sound: Off"
 		State.Request("SetSetting", { key = "sound", value = soundOn })
 	end })
+	local musicOn = not p or p.settings.music ~= false
+	local musicButton: TextButton
+	musicButton = UI.button({ Text = if musicOn then "🎵 Music: On" else "🎵 Music: Off", Color = UI.Colors.Purple, Size = UDim2.fromOffset(220, 44), LayoutOrder = 1, Parent = content, OnClick = function()
+		musicOn = not musicOn
+		Audio.SetMusic(musicOn)
+		musicButton.Text = if musicOn then "🎵 Music: On" else "🎵 Music: Off"
+		State.Request("SetSetting", { key = "music", value = musicOn })
+	end })
+	if not Audio.HasMusic() then
+		note(content, "No music tracks are set up yet. See \"Music and pet sounds\" in the README.", 1)
+	end
 
 	UI.title({ Text = "How to play", Size = UDim2.new(1, 0, 0, 26), LayoutOrder = 2, Parent = content })
 	note(content, table.concat({
@@ -7641,4 +8005,4 @@ function Windows.Settings()
 end
 
 return Windows
-]]></ProtectedString></Properties></Item></Item><Item class="StarterCharacterScripts" referent="RBX0000001F"><Properties><string name="Name">StarterCharacterScripts</string></Properties></Item></Item></roblox>
+]]></ProtectedString></Properties></Item></Item><Item class="StarterCharacterScripts" referent="RBX00000046"><Properties><string name="Name">StarterCharacterScripts</string></Properties></Item></Item></roblox>

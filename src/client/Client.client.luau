@@ -15,6 +15,7 @@ local PetPanel = require(script.Parent:WaitForChild("PetPanel"))
 local Windows = require(script.Parent:WaitForChild("Windows"))
 local Decorate = require(script.Parent:WaitForChild("Decorate"))
 local CameraController = require(script.Parent:WaitForChild("CameraController"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -77,6 +78,7 @@ PetPanel.Init()
 PetAnimator.Init()
 Decorate.Init()
 CameraController.Init()
+Audio.Init()
 
 Windows.Toast = function(text)
 	Hud.Toast(text)
@@ -186,6 +188,7 @@ local function handlePress(point: Vector2)
 			end
 		else
 			UI.Play("Pop", 0.3)
+			Audio.PetSound(pet, "Greet")
 			State.Select(pet)
 			PetAnimator.Bubble(pet, if pet:GetAttribute("Sleeping") then "💤" else "❤️", 1.2)
 		end

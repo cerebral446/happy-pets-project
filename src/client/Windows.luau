@@ -12,6 +12,7 @@ local PetModels = require(Shared:WaitForChild("PetModels"))
 local FurnitureModels = require(Shared:WaitForChild("FurnitureModels"))
 local State = require(script.Parent:WaitForChild("State"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local player = Players.LocalPlayer
 
@@ -875,6 +876,17 @@ function Windows.Settings()
 		soundButton.Text = if soundOn then "🔊 Sound: On" else "🔈 Sound: Off"
 		State.Request("SetSetting", { key = "sound", value = soundOn })
 	end })
+	local musicOn = not p or p.settings.music ~= false
+	local musicButton: TextButton
+	musicButton = UI.button({ Text = if musicOn then "🎵 Music: On" else "🎵 Music: Off", Color = UI.Colors.Purple, Size = UDim2.fromOffset(220, 44), LayoutOrder = 1, Parent = content, OnClick = function()
+		musicOn = not musicOn
+		Audio.SetMusic(musicOn)
+		musicButton.Text = if musicOn then "🎵 Music: On" else "🎵 Music: Off"
+		State.Request("SetSetting", { key = "music", value = musicOn })
+	end })
+	if not Audio.HasMusic() then
+		note(content, "No music tracks are set up yet. See \"Music and pet sounds\" in the README.", 1)
+	end
 
 	UI.title({ Text = "How to play", Size = UDim2.new(1, 0, 0, 26), LayoutOrder = 2, Parent = content })
 	note(content, table.concat({

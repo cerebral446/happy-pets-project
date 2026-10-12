@@ -128,6 +128,28 @@ test("save round-trips and repairs corruption", function()
 	eq(fromString.level, 1)
 end)
 
+test("settings default on and survive a reload", function()
+	local data = SaveSchema.Default(NOW)
+	eq(data.settings.sound, true)
+	eq(data.settings.music, true)
+	data.settings.music = false
+	local loaded = SaveSchema.Load(data, NOW)
+	eq(loaded.settings.music, false)
+	eq(loaded.settings.sound, true)
+	-- Saves from before the music setting existed get music on.
+	eq(SaveSchema.Load({ settings = { sound = false } }, NOW).settings.music, true)
+end)
+
+test("audio config covers every species", function()
+	for species in Config.Species do
+		local sounds = Config.Audio.Pets[species]
+		truthy(sounds, species .. " has a sound set")
+		for _, kind in Config.Audio.PetKinds do
+			truthy(typeof(sounds[kind]) == "table", species .. "." .. kind)
+		end
+	end
+end)
+
 test("spending never goes negative", function()
 	local data = SaveSchema.Default(NOW)
 	data.coins = 30

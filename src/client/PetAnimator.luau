@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local State = require(script.Parent:WaitForChild("State"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local player = Players.LocalPlayer
 
@@ -50,6 +51,8 @@ type PetState = {
 	room: string,
 	toy: Model?,
 	toyPivot: CFrame?,
+	wasSleeping: boolean,
+	snoreAt: number,
 }
 
 local pets: { [Model]: PetState } = {}
@@ -248,6 +251,8 @@ local function track(model: Model)
 		room = model:GetAttribute("Room") :: string,
 		toy = nil,
 		toyPivot = nil,
+		wasSleeping = model:GetAttribute("Sleeping") == true,
+		snoreAt = os.clock() + 8 + math.random() * 10,
 	}
 	pets[model] = state
 end
@@ -334,6 +339,23 @@ local ACTION_EFFECTS = {
 	Eat = { "😋" },
 	Play = { "🎵", "⭐", "💫" },
 }
+
+-- Which voice each action uses (see Config.Audio).
+local ACTION_VOICES = {
+	Pet = "Love",
+	Love = "Love",
+	Treat = "Love",
+	Eat = "Eat",
+	Play = "Play",
+	Bath = "Greet",
+	Brush = "Love",
+	Medicine = "Greet",
+}
+
+-- Pets only make noise in the room you're looking at.
+local function inView(model: Model): boolean
+	return model:GetAttribute("Room") == State.RoomId()
+end
 
 local function actionGoal(state: PetState, action: string, target: Model?): (Vector3?, Vector3?)
 	if not target then
@@ -430,6 +452,12 @@ local function behave(state: PetState, dt: number, t: number): string
 		if action == "Eat" then
 			PetAnimator.Bubble(model, "🍽️", 1.5)
 		end
+		local voice = ACTION_VOICES[action]
+		if voice and inView(model) and (model:GetAttribute("ActionEnd") :: number? or 0) > now() then
+			-- Eating and playing sound once the pet reaches the bowl or toy.
+			local delay = if (action == "Eat" or action == "Play") and model:GetAttribute("ActionTarget") ~= "" then 1.6 else 0
+			task.delay(delay, Audio.PetSound, model, voice)
+		end
 	end
 	if action ~= "" and actionEnd > now() then
 		local target = findFurniture(model, model:GetAttribute("ActionTarget") :: string)
@@ -462,8 +490,23 @@ local function behave(state: PetState, dt: number, t: number): string
 		state.toy, state.toyPivot = nil, nil
 	end
 
+	-- Falling asleep, and the odd snore or purr while asleep.
+	local sleeping = model:GetAttribute("Sleeping") == true
+	if sleeping ~= state.wasSleeping then
+		state.wasSleeping = sleeping
+		if sleeping and inView(model) then
+			Audio.PetSound(model, "Sleep", 0.7)
+		end
+		state.snoreAt = clock + 15 + math.random() * 15
+	elseif sleeping and clock >= state.snoreAt then
+		state.snoreAt = clock + 18 + math.random() * 20
+		if inView(model) then
+			Audio.PetSound(model, "Sleep", 0.45)
+		end
+	end
+
 	-- Sleeping: walk to bed (if any) and curl up.
-	if model:GetAttribute("Sleeping") then
+	if sleeping then
 		local bed = findFurniture(model, (model:GetAttribute("SleepTarget") :: string?) or "")
 		local spot = sleepSpot(state, bed)
 		if spot and not walkTo(state, spot, dt, walkSpeed) then
@@ -490,6 +533,9 @@ local function behave(state: PetState, dt: number, t: number): string
 		local info = Config.NeedInfo[low]
 		if info then
 			PetAnimator.Bubble(model, info.Icon, 2.5)
+			if inView(model) and math.random() < 0.5 then
+				Audio.PetSound(model, "Sad")
+			end
 		end
 	end
 

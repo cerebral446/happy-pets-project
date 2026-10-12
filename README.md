@@ -132,10 +132,13 @@ src/client/Windows.luau         Adopt, My Pets, Shop, Items, Breed, Rooms, Visit
 src/client/Decorate.luau        Furniture placement with a green/red preview
 src/client/PetAnimator.luau     Wandering, walking, sitting, sleeping, eating, playing, hearts
 src/client/CameraController.luau Dollhouse camera
+src/client/Audio.luau           Lo-fi music playlist and per-species pet voices
 tests/run.luau                  Unit tests for the game rules
 tests/models.luau               Builds every pet look and furniture item
 tests/server.luau               Headless run of the server logic (adopt → care → decorate → breed → visit → save)
-tools/build_place.py            Builds HappyPets.rbxlx from src/
+tools/build_place.py            Builds HappyPets.rbxlx from src/ (with empty Assets/Audio folders)
+tools/make_lofi.py              Synthesises the original lo-fi tracks in assets/audio/
+assets/audio/                   The two lo-fi tracks, ready to upload to Roblox
 ```
 
 The game rules (`PetRules`, `Economy`, `Placement`, `SaveSchema`) don't use any
@@ -226,6 +229,62 @@ Asset manifest (ids used by the code):
 | `garden_tree` | Little Tree | Decor | - |
 | `fountain` | Fountain | Decor | - |
 
-Sounds use Roblox's built-in `rbxasset://sounds/…` files (button click, ping,
-pop). There's no background music yet. Add a `Sound` with your own music asset id
-to `SoundService` if you want some.
+Interface clicks use Roblox's built-in `rbxasset://sounds/…` files.
+
+## Music and pet sounds
+
+The game has a lo-fi hip hop music player, and every species has its own
+voice. Cats meow and purr, dogs bark and whine, and so on. Roblox only plays
+audio that's been uploaded to Roblox, so you need to connect the sounds once,
+in Studio. Until then the game is simply quiet. Nothing breaks.
+
+**When pets make sounds** (6 kinds per species):
+
+| Kind | Plays when… | Cat | Dog | Bunny | Fox | Panda |
+| --- | --- | --- | --- | --- | --- | --- |
+| `Greet` | you click it, bath, vitamins | meow | bark | squeak | yip | bleat |
+| `Love` | you pet it, brush it, give a treat | purr | happy pant | soft purr | chatter | happy squeak |
+| `Play` | it plays with a toy | trill / chirp | excited bark | thump | playful yip | squeal |
+| `Eat` | it eats | crunch | crunch | nibble | crunch | munch |
+| `Sad` | it's hungry, tired, bored or dirty | sad meow | whine | thump | whimper | whine |
+| `Sleep` | it falls asleep, and snoozes now and then | soft purr | snore | — | snore | snore |
+
+Babies sound higher pitched, and every sound varies a little each time. A
+missing kind falls back to that species' `Greet` sound. Pets only make noise in
+the room you're looking at.
+
+### 1. Add the music
+
+`assets/audio/` has two original lo-fi tracks made for this game:
+`lofi_sunny_window.ogg` and `lofi_rainy_nap.ogg`, about 2 minutes each. They
+were synthesised by `tools/make_lofi.py`, so you're free to upload them.
+
+1. In Studio, open **View → Asset Manager**, click **Bulk Import**, and pick both `.ogg`
+   files. You can also upload them at **create.roblox.com → Creations → Audio**.
+2. Once they're approved, right-click each one, choose **Copy Asset ID**, and paste
+   the ids into `Config.Audio.Music` in `src/shared/Config.luau`:
+   ```lua
+   Music = { "rbxassetid://1111111111", "rbxassetid://2222222222" },
+   ```
+   Or drag the uploaded sounds straight into **ReplicatedStorage → Assets → Audio →
+   Music** in the Explorer.
+
+Tracks shuffle and fade into each other. Players can turn music off in
+**⚙️ Settings**, separately from the other sounds.
+
+### 2. Add the animal sounds
+
+The place file already has a folder for every species and kind:
+**ReplicatedStorage → Assets → Audio → Cat → Greet**, and so on.
+
+1. Open the **Toolbox** (View → Toolbox), choose the **Audio** tab, and search for, say,
+   `cat meow`. Sounds uploaded by **Roblox** (shown as the creator) can be used in any
+   experience.
+2. Drag a sound you like into the matching folder, for example `Assets/Audio/Cat/Greet`.
+   Put several in one folder and the game picks one at random each time.
+3. Press Play and click a cat. 🐱
+
+You can also paste ids into `Config.Audio.Pets` instead of using the folders.
+
+To make your own music variations, change the chords, tempo or seed in
+`tools/make_lofi.py` and run `python3 tools/make_lofi.py`. It needs numpy and ffmpeg.

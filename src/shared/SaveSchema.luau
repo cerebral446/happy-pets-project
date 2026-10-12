@@ -12,7 +12,7 @@
 --   adopt      { day, rerolls, taken = { ["Cat:2"] = true } }
 --   daily      { day }                     last daily bonus claimed
 --   visits     { day, count, petted = { [key] = true } }
---   settings   { sound }
+--   settings   { sound, music }
 --   stats      { care, adopted, bred, gifts }
 --   starterDone                            first free kitten taken
 
@@ -46,7 +46,7 @@ function SaveSchema.Default(now: number): any
 		adopt = { day = 0, rerolls = 0, taken = {} },
 		daily = { day = 0 },
 		visits = { day = 0, count = 0, petted = {} },
-		settings = { sound = true },
+		settings = { sound = true, music = true },
 		stats = { care = 0, adopted = 0, bred = 0, gifts = 0 },
 		starterDone = false,
 	}
@@ -270,7 +270,7 @@ function SaveSchema.Load(raw: any, now: number): (any, { string })
 			data.visits.petted[key] = true
 		end
 	end
-	data.settings = { sound = tbl(raw.settings).sound ~= false }
+	data.settings = { sound = tbl(raw.settings).sound ~= false, music = tbl(raw.settings).music ~= false }
 	local stats = tbl(raw.stats)
 	data.stats = {
 		care = num(stats.care, 0, 0),

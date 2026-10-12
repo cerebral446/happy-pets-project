@@ -358,4 +358,45 @@ function Config.FloorById(id: string): any
 	return nil
 end
 
+---------------------------------------------------------------------------
+-- Music and pet sounds
+---------------------------------------------------------------------------
+-- Roblox only plays audio that has been uploaded to Roblox, so these start
+-- empty. Fill them in either way (see the README, "Music and pet sounds"):
+--   * paste asset ids here, e.g. "rbxassetid://1234567890", or
+--   * drop Sound objects into ReplicatedStorage.Assets.Audio in Studio:
+--       Assets/Audio/Music/<any name>          background tracks
+--       Assets/Audio/<Species>/<Kind>          a Sound, or a Folder of Sounds
+--     (Sounds inserted from the Toolbox work directly; no ids to copy.)
+-- Several ids in one list are picked at random, for variety.
+
+Config.Audio = {
+	MusicVolume = 0.3,
+	-- Seconds of fade between tracks.
+	MusicFade = 2.5,
+	-- Upload assets/audio/lofi_sunny_window.ogg and lofi_rainy_nap.ogg
+	-- (original tracks made for this game) and paste their ids here.
+	Music = {} :: { string },
+
+	PetVolume = 0.7,
+	-- Kinds of pet sound and when they play:
+	--   Greet  you click the pet, give it medicine or a bath   (meow, bark, squeak…)
+	--   Love   you pet it, give a treat, or it falls in love    (purr, happy pant…)
+	--   Play   it plays with a toy                             (trill, excited bark…)
+	--   Eat    it eats                                         (munching)
+	--   Sad    it shows a thought bubble for a low need         (sad meow, whine…)
+	--   Sleep  it falls asleep, and now and then while asleep  (soft purr, snore)
+	-- A missing kind falls back to Greet; a missing Greet plays nothing.
+	PetKinds = { "Greet", "Love", "Play", "Eat", "Sad", "Sleep" },
+	Pets = {
+		Cat = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+		Dog = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+		Bunny = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+		Fox = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+		Panda = { Greet = {}, Love = {}, Play = {}, Eat = {}, Sad = {}, Sleep = {} },
+	} :: { [string]: { [string]: { string } } },
+	-- Babies sound higher.
+	BabyPitch = 1.25,
+}
+
 return Config

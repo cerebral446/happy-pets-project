@@ -682,8 +682,8 @@ function Actions.VisitPet(s: Session, payload: any): Result
 end
 
 function Actions.SetSetting(s: Session, payload: any): Result
-	if payload.key == "sound" and typeof(payload.value) == "boolean" then
-		s.data.settings.sound = payload.value
+	if (payload.key == "sound" or payload.key == "music") and typeof(payload.value) == "boolean" then
+		s.data.settings[payload.key] = payload.value
 		s.dirty = true
 		return { ok = true }
 	end

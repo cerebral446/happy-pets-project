@@ -10,6 +10,7 @@ Mapping (same as default.project.json):
 Usage: python3 tools/build_place.py [output.rbxlx]
 """
 import itertools
+import re
 import sys
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -57,6 +58,17 @@ def scripts_in(folder: Path):
     return "".join(script_item(p) for p in sorted(folder.glob("*.luau")))
 
 
+def audio_folders():
+    """Empty Assets/Audio folders to drop Sounds into (see Config.Audio)."""
+    config = (SRC / "shared" / "Config.luau").read_text(encoding="utf-8")
+    species = re.findall(r'"(\w+)"', re.search(r"Config\.SpeciesOrder = \{([^}]*)\}", config).group(1))
+    kinds = re.findall(r'"(\w+)"', re.search(r"PetKinds = \{([^}]*)\}", config).group(1))
+    children = container("Folder", "Music")
+    for sp in species:
+        children += container("Folder", sp, "".join(container("Folder", k) for k in kinds))
+    return container("Folder", "Assets", container("Folder", "Audio", children))
+
+
 def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "HappyPets.rbxlx"
     body = "".join(
@@ -76,7 +88,11 @@ def main():
                 '<token name="Technology">4</token>'
                 "</Properties></Item>"
             ),
-            container("ReplicatedStorage", "ReplicatedStorage", container("Folder", "Shared", scripts_in(SRC / "shared"))),
+            container(
+                "ReplicatedStorage",
+                "ReplicatedStorage",
+                container("Folder", "Shared", scripts_in(SRC / "shared")) + audio_folders(),
+            ),
             container("ServerScriptService", "ServerScriptService", scripts_in(SRC / "server")),
             container(
                 "StarterPlayer",
